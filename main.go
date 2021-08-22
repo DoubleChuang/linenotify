@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"html/template"
@@ -75,8 +76,12 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := newTokenResponse(byt)
 	fmt.Println("result:", res)
-	token := res.AccessToken
+	if res.Status != strconv.Itoa(http.StatusOK) {
+		w.Write(byt)
+		return
+	}
 
+	token := res.AccessToken
 	e := db.InsertOne(
 		bson.M{"token": token,
 			"created_at": time.Now(),
