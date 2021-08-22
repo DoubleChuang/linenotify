@@ -18,43 +18,43 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"html/template"
+
+	"github.com/DoubleChuang/linenotify/mongo"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var clientID string
 var clientSecret string
 var callbackURL string
-var token string
+var db *mongo.Mongo
 
 func main() {
+	var err error
+
 	http.HandleFunc("/callback", callbackHandler)
-	http.HandleFunc("/notify", notifyHandler)
 	http.HandleFunc("/auth", authHandler)
 	clientID = os.Getenv("ClientID")
 	clientSecret = os.Getenv("ClientSecret")
 	callbackURL = os.Getenv("CallbackURL")
+
+	dbUser := os.Getenv("DatabaseUser")
+	dbPassword := os.Getenv("DatabasePassword")
+	dbHost := os.Getenv("DatabaseHost")
+
 	port := os.Getenv("PORT")
 	fmt.Printf("ENV port:%s, cid:%s csecret:%s\n", port, clientID, clientSecret)
+	dbUrl := fmt.Sprintf("mongodb+srv://%s:%s@%s/?authSource=admin", dbUser, dbPassword, dbHost)
+
+	db, err = mongo.New(dbUrl, "stock")
+	if err != nil {
+		panic(err)
+	}
+
 	addr := fmt.Sprintf(":%s", port)
 	http.ListenAndServe(addr, nil)
-}
-
-func notifyHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm() // Populates request.Form
-	msg := r.Form.Get("msg")
-	fmt.Printf("Get msg=%s\n", msg)
-
-	data := url.Values{}
-	data.Add("message", msg)
-
-	byt, err := apiCall("POST", apiNotify, data, token)
-	fmt.Println("ret:", string(byt), " err:", err)
-
-	res := newTokenResponse(byt)
-	fmt.Println("result:", res)
-	token = res.AccessToken
-	w.Write(byt)
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +75,17 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := newTokenResponse(byt)
 	fmt.Println("result:", res)
-	token = res.AccessToken
+	token := res.AccessToken
+
+	e := db.InsertOne(
+		bson.M{"token": token,
+			"created_at": time.Now(),
+		},
+		"line_tokens")
+	if e != nil {
+		fmt.Println("mongo err:", e)
+	}
+
 	w.Write(byt)
 }
 func authHandler(w http.ResponseWriter, r *http.Request) {

@@ -20,6 +20,6 @@ const authTmpl = `
     </script>
     </head>
     <body>
-        <button onclick="oAuth2();"> 連結到 LineNotify 按鈕 </button>
+        <button onclick="oAuth2();"> 連結到 LineNotify! 按鈕 </button>
 	</body>
 `

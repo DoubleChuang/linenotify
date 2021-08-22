@@ -89,12 +89,14 @@ In your fork repo, path
         - `go get -u github.com/kardianos/govendor`
     - Update root path
         - `rm -Rf vendor`
-        - `govendor init`
+        - `go mod vender`
 ### 5. Modify your code
 
 ### 6. Push to Heroku
 
 - `git push -u heroku HEAD`
+
+- `git push -u heroku <local_branch>:master`
 
 
 <br><br>
